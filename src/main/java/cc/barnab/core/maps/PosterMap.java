@@ -128,6 +128,12 @@ public class PosterMap {
 
         List<ItemFrameEntity> frames = getFrames(entity, playerDir, width, height, origin);
 
+        // If the item frame isn't actually in the area don't delete them
+        // Prevents bug causing remote map deletion to be possible (kind of funny)
+        if (!frames.contains(entity)) {
+            return false;
+        }
+
         for (ItemFrameEntity frame : frames) {
             if (!frame.containsMap())
                 continue;
