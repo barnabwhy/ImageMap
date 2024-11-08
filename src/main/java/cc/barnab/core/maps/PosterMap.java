@@ -9,6 +9,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -54,7 +55,7 @@ public class PosterMap {
         Direction playerDir = Direction.getFacing(player.getRotationVector(0.0f, player.getYaw(1.0f)));
         List<ItemFrameEntity> frames = getFrames(entity, playerDir, mapImage.get().getWidth(), mapImage.get().getHeight());
         if (frames.size() < mapImage.get().getWidth() * mapImage.get().getHeight()) {
-            player.sendMessage(Text.literal("Failed to place poster map. Not enough item frames were available.").formatted(Formatting.RED));
+            player.sendMessage(Text.literal("Failed to place poster map. Not enough item frames were available.").formatted(Formatting.RED), false);
             return false;
         }
 
@@ -153,7 +154,7 @@ public class PosterMap {
             int framedOriginZ = nbt.getInt("image_map_origin_z");
 
             if (mapId.equals(framedMapId) && originX == framedOriginX && originY == framedOriginY && originZ == framedOriginZ)
-                frame.damage(new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
+                frame.damage((ServerWorld) frame.getWorld(), new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
         }
 
         return true;

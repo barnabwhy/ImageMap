@@ -4,6 +4,8 @@ import cc.barnab.ImageMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.map.MapState;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
@@ -154,7 +156,14 @@ public class MapRenderer {
 
         File mapDatBackup = new File(FabricLoader.getInstance().getConfigDir().toFile(), "/ImageMap/map_backup/map_"+ mapId.id() + ".dat");
         mapDatBackup.getParentFile().mkdirs();
-        state.save(mapDatBackup, world.getRegistryManager());
+        NbtCompound mapNbt = state.toNbt(world.getRegistryManager());
+        try {
+            NbtIo.writeCompressed(mapNbt, mapDatBackup.toPath());
+        } catch (IOException ignored) {
+            // Mark as dirty if write fails, so it will still get saved
+            state.markDirty();
+            return;
+        }
 
         // Cheat saving so we can do it faster
         String levelName = world.getServer().getSaveProperties().getLevelName();
