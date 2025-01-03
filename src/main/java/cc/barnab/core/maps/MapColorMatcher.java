@@ -58,7 +58,7 @@ public class MapColorMatcher {
     private static void loadColors() {
         for (int i = 0; i < 256; i++) {
             int color = MapColor.getRenderColor(i);
-            mapColors[i] = new RGBAColor(color, true);
+            mapColors[i] = new RGBAColor(color, false);
         }
 
         hasLoaded = true;
