@@ -100,17 +100,25 @@ public class MapRenderer {
 
             for (int y = height - 1; y >= 0; y--) {
                 for (int x = 0; x < width; x++) {
-                    int imageX = x * 128;
-                    int imageY = y * 128;
-                    int fullMapX = x * 128;
-                    int fullMapY = y * 128;
-                    if (imageX < finalImageOffsetX) imageX = finalImageOffsetX;
-                    if (imageY < finalImageOffsetY) imageY = finalImageOffsetY;
-                    if (fullMapX < finalMapOffsetX) fullMapX = finalMapOffsetX;
-                    if (fullMapY < finalMapOffsetY) fullMapY = finalMapOffsetY;
+                    int imageX = x * 128 + finalImageOffsetX;
+                    int imageY = y * 128 + finalImageOffsetY;
+                    int fullMapX = finalMapOffsetX - (x * 128);
+                    int fullMapY = finalMapOffsetY - (y * 128);
+
+                    if (fullMapX > 128) fullMapX = 128;
+                    if (fullMapY > 128) fullMapY = 128;
+
+                    if (fullMapX < 0) {
+                        fullMapX = 0;
+                        imageX -= finalMapOffsetX % 128;
+                    }
+                    if (fullMapY < 0) {
+                        fullMapY = 0;
+                        imageY -= finalMapOffsetY % 128;
+                    }
 
                     MapIdComponent mapId = world.increaseAndGetMapId();
-                    drawMap(world, mapId, scaled, imageX, imageY, fullMapX % 128, fullMapY % 128);
+                    drawMap(world, mapId, scaled, imageX, imageY, fullMapX, fullMapY);
                     mapIds.add(mapId.id());
                 }
             }
