@@ -43,18 +43,18 @@ public class Commands {
                         .executes(ReloadCommand::executeCommand)
                 )
         );
-        // Migrate command
-        dispatcher.register(literal("imagemap")
-            .requires(source -> source.hasPermissionLevel(4))
-            .then(literal("migrate")
-                .then(argument("source", StringArgumentType.word()).suggests(new MigrateSourceSuggestionProvider())
-                    .executes(MigrateCommand::executeCommand)
-                    .then(argument("code", StringArgumentType.word())
-                            .executes(MigrateCommand::executeCommand)
-                    )
-                )
-            )
-        );
+        // Migrate command - No longer supported
+//        dispatcher.register(literal("imagemap")
+//            .requires(source -> source.hasPermissionLevel(4))
+//            .then(literal("migrate")
+//                .then(argument("source", StringArgumentType.word()).suggests(new MigrateSourceSuggestionProvider())
+//                    .executes(MigrateCommand::executeCommand)
+//                    .then(argument("code", StringArgumentType.word())
+//                            .executes(MigrateCommand::executeCommand)
+//                    )
+//                )
+//            )
+//        );
         // Create map command
         dispatcher.register(literal("imagemap")
                 .requires(source -> source.hasPermissionLevel(ImageMap.CONFIG.minPermLevel))
@@ -118,7 +118,7 @@ public class Commands {
         @Override
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<ServerCommandSource> context,
                                                              SuggestionsBuilder builder) throws CommandSyntaxException {
-            builder.suggest("ImageOnMap");
+            //builder.suggest("ImageOnMap");
             return builder.buildFuture();
         }
     }

@@ -6,8 +6,11 @@ import net.minecraft.component.type.MapIdComponent;
 import net.minecraft.item.map.MapState;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.PersistentStateManager;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
 
 import javax.imageio.ImageIO;
@@ -17,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -162,9 +166,12 @@ public class MapRenderer {
 
         world.putMapState(mapId, state);
 
+        PersistentStateManager stateManager = world.getPersistentStateManager();
+        PersistentStateType<MapState> mapStateType = MapState.createStateType(mapId);
+
         File mapDatBackup = new File(FabricLoader.getInstance().getConfigDir().toFile(), "/ImageMap/map_backup/map_"+ mapId.id() + ".dat");
         mapDatBackup.getParentFile().mkdirs();
-        NbtCompound mapNbt = state.toNbt(world.getRegistryManager());
+        NbtCompound mapNbt = stateManager.encode(mapStateType, state, stateManager.registries.getOps(NbtOps.INSTANCE));
         try {
             NbtIo.writeCompressed(mapNbt, mapDatBackup.toPath());
         } catch (IOException ignored) {
@@ -174,10 +181,9 @@ public class MapRenderer {
         }
 
         // Cheat saving so we can do it faster
-        String levelName = world.getServer().getSaveProperties().getLevelName();
-        File mapDatFile = new File(FabricLoader.getInstance().getGameDir().toFile(), "/" + levelName + "/data/map_" + mapId.id() + ".dat");
+        Path mapDatPath = stateManager.getFile(mapStateType.id());
         try {
-            Files.copy(mapDatBackup.toPath(), mapDatFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(mapDatBackup.toPath(), mapDatPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ignored) {
             // Mark as dirty if copy fails, so it will still get saved
             state.markDirty();

@@ -30,36 +30,36 @@ public class MigrateCommand {
 
         String finalPassword = password;
         switch (migrationSource.toLowerCase()) {
-            case "imageonmap" -> {
-                CompletableFuture.supplyAsync(() -> {
-                    long startTime = System.currentTimeMillis();
-
-                    int migrated = Migrator.migrateImageOnMap(source, finalPassword);
-                    if (migrated == -1) {
-                        source.sendFeedback(() ->
-                                Text.literal("A migration is already in progress. Please wait until it is done.")
-                                        .formatted(Formatting.YELLOW), false);
-                    } else if (migrated == -2) {
-                        source.sendFeedback(() ->
-                                Text.literal("Incorrect code inputted. Migration will not be started.")
-                                        .formatted(Formatting.YELLOW), false);
-                    } else {
-                        long timeElapsed = System.currentTimeMillis() - startTime;
-                        source.sendFeedback(() ->
-                                Text.literal("Migration from ImageOnMap complete").formatted(Formatting.AQUA), true);
-                        source.sendFeedback(() ->
-                                Text.literal(String.format("Migrated %d maps in %.2fs", migrated, ((double)timeElapsed) / 1000.0))
-                                        .formatted(Formatting.GREEN), true);
-                    }
-                    return null;
-                });
-            }
+//            case "imageonmap" -> {
+//                CompletableFuture.supplyAsync(() -> {
+//                    long startTime = System.currentTimeMillis();
+//
+//                    int migrated = Migrator.migrateImageOnMap(source, finalPassword);
+//                    if (migrated == -1) {
+//                        source.sendFeedback(() ->
+//                                Text.literal("A migration is already in progress. Please wait until it is done.")
+//                                        .formatted(Formatting.YELLOW), false);
+//                    } else if (migrated == -2) {
+//                        source.sendFeedback(() ->
+//                                Text.literal("Incorrect code inputted. Migration will not be started.")
+//                                        .formatted(Formatting.YELLOW), false);
+//                    } else {
+//                        long timeElapsed = System.currentTimeMillis() - startTime;
+//                        source.sendFeedback(() ->
+//                                Text.literal("Migration from ImageOnMap complete").formatted(Formatting.AQUA), true);
+//                        source.sendFeedback(() ->
+//                                Text.literal(String.format("Migrated %d maps in %.2fs", migrated, ((double)timeElapsed) / 1000.0))
+//                                        .formatted(Formatting.GREEN), true);
+//                    }
+//                    return null;
+//                });
+//            }
             default -> {
                 source.sendFeedback(() -> Text.literal("Can't start migration: Unknown source.").formatted(Formatting.RED), false);
                 return 1;
             }
         }
 
-        return 1;
+//        return 1;
     }
 }

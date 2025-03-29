@@ -1,0 +1,5 @@
+accessWidener v2 named
+
+accessible method net/minecraft/world/PersistentStateManager encode (Lnet/minecraft/world/PersistentStateType;Lnet/minecraft/world/PersistentState;Lnet/minecraft/registry/RegistryOps;)Lnet/minecraft/nbt/NbtCompound;
+accessible method net/minecraft/world/PersistentStateManager getFile (Ljava/lang/String;)Ljava/nio/file/Path;
+accessible field net/minecraft/world/PersistentStateManager registries Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;

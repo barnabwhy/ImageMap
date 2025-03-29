@@ -3,10 +3,7 @@ package cc.barnab.core.maps;
 import cc.barnab.ImageMap;
 import com.mojang.serialization.DataResult;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.MapColorComponent;
-import net.minecraft.component.type.MapIdComponent;
-import net.minecraft.component.type.NbtComponent;
+import net.minecraft.component.type.*;
 import net.minecraft.entity.decoration.ItemFrameEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -46,7 +43,7 @@ public class MapItem {
 
         mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
         mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
+        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
 
         if (isSingle) {
             mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43690)); // dark aqua
@@ -93,7 +90,7 @@ public class MapItem {
 
         mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
         mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
+        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
 
         // Custom data
         NbtCompound nbt = new NbtCompound();
@@ -131,7 +128,7 @@ public class MapItem {
 
         mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
         mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
+        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
 
         if (isSingle) {
             mapItem.set(DataComponentTypes.ITEM_NAME, Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD));

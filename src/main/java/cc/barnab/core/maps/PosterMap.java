@@ -44,8 +44,8 @@ public class PosterMap {
         if (!nbt.contains("image_map_id") || !nbt.contains("image_map_owner"))
             return false;
 
-        String mapId = nbt.getString("image_map_id");
-        String uuid = nbt.getString("image_map_owner");
+        String mapId = nbt.getString("image_map_id").get();
+        String uuid = nbt.getString("image_map_owner").get();
 
         Optional<MapImage> mapImage = MapLoader.getPlayerMaps(UUID.fromString(uuid)).mapList.stream().filter(m -> m.getId().equals(mapId)).findFirst();
 
@@ -98,13 +98,13 @@ public class PosterMap {
         )
             return false;
 
-        String mapId = nbt.getString("image_map_id");
-        int originX = nbt.getInt("image_map_origin_x");
-        int originY = nbt.getInt("image_map_origin_y");
-        int originZ = nbt.getInt("image_map_origin_z");
-        int rotation = nbt.getInt("image_map_rotation");
-        int width = nbt.getInt("image_map_width");
-        int height = nbt.getInt("image_map_height");
+        String mapId = nbt.getString("image_map_id").get();
+        int originX = nbt.getInt("image_map_origin_x").get();
+        int originY = nbt.getInt("image_map_origin_y").get();
+        int originZ = nbt.getInt("image_map_origin_z").get();
+        int rotation = nbt.getInt("image_map_rotation").get();
+        int width = nbt.getInt("image_map_width").get();
+        int height = nbt.getInt("image_map_height").get();
 
         Direction playerDir = Direction.UP;
         if (entity.getFacing() == Direction.UP) {
@@ -148,10 +148,10 @@ public class PosterMap {
             )
                 continue;
 
-            String framedMapId = nbt.getString("image_map_id");
-            int framedOriginX = nbt.getInt("image_map_origin_x");
-            int framedOriginY = nbt.getInt("image_map_origin_y");
-            int framedOriginZ = nbt.getInt("image_map_origin_z");
+            String framedMapId = nbt.getString("image_map_id").get();
+            int framedOriginX = nbt.getInt("image_map_origin_x").get();
+            int framedOriginY = nbt.getInt("image_map_origin_y").get();
+            int framedOriginZ = nbt.getInt("image_map_origin_z").get();
 
             if (mapId.equals(framedMapId) && originX == framedOriginX && originY == framedOriginY && originZ == framedOriginZ)
                 frame.damage((ServerWorld) frame.getWorld(), new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
