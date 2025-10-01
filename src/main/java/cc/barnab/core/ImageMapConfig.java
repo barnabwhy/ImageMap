@@ -16,6 +16,8 @@ public class ImageMapConfig {
             .create();
 
     public int minPermLevel = 2;
+    public int maxWidth = 16;
+    public int maxHeight = 16;
 
     public static ImageMapConfig loadOrCreateConfig() {
         try {

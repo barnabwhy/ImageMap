@@ -1,5 +1,7 @@
 package cc.barnab.core.commands;
 
+import cc.barnab.ImageMap;
+import cc.barnab.core.ImageMapConfig;
 import cc.barnab.core.maps.*;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -24,6 +26,16 @@ public class CreateMapCommand {
         int height = context.getArgument("height", Integer.class);
         String mode = context.getArgument("mode", String.class);
         String url = context.getArgument("url", String.class);
+
+        if (width > ImageMap.CONFIG.maxWidth) {
+            source.sendFeedback(() -> Text.literal(String.format("Map image would be too wide (%d > %d)", width, ImageMap.CONFIG.maxWidth)).formatted(Formatting.RED), false);
+            return 1;
+        }
+
+        if (height > ImageMap.CONFIG.maxHeight) {
+            source.sendFeedback(() -> Text.literal(String.format("Map image would be too tall (%d > %d)", height, ImageMap.CONFIG.maxHeight)).formatted(Formatting.RED), false);
+            return 1;
+        }
 
         source.sendFeedback(() -> Text.literal(String.format("Creating %dx%d map image...", width, height)).formatted(Formatting.AQUA), false);
 
