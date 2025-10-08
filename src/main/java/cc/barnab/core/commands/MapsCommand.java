@@ -8,6 +8,7 @@ import cc.barnab.core.maps.MapImageType;
 import cc.barnab.core.maps.MapItem;
 import cc.barnab.core.maps.MapLoader;
 import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.yggdrasil.response.NameAndId;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
@@ -22,6 +23,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.ClickType;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.UserCache;
 
 import java.util.List;
 import java.util.Objects;
@@ -43,11 +45,11 @@ public class MapsCommand {
                 targetPlayerName = targetPlayer.getName().getString();
             } else {
                 // Try user cache
-                Optional<GameProfile> profileOptional = Objects.requireNonNull(source.getServer().getUserCache()).findByName(playerName);
+                Optional<NameAndId> profileOptional = Objects.requireNonNull(source.getServer().getApiServices().profileRepository()).findProfileByName(playerName);
                 if (profileOptional.isPresent()) {
-                    GameProfile profile = profileOptional.get();
-                    targetPlayerUUID = profile.getId();
-                    targetPlayerName = profile.getName();
+                    NameAndId profile = profileOptional.get();
+                    targetPlayerUUID = profile.id();
+                    targetPlayerName = profile.name();
                 }
             }
         } catch(Exception ignored) {}

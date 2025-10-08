@@ -17,10 +17,7 @@ import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class PosterMap {
@@ -40,7 +37,7 @@ public class PosterMap {
         if (!heldItem.isOf(Items.FILLED_MAP) || !heldItem.contains(DataComponentTypes.CUSTOM_DATA))
             return false;
 
-        NbtCompound nbt = heldItem.get(DataComponentTypes.CUSTOM_DATA).getNbt();
+        NbtCompound nbt = Objects.requireNonNull(heldItem.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
         if (!nbt.contains("image_map_id") || !nbt.contains("image_map_owner"))
             return false;
 
@@ -90,7 +87,7 @@ public class PosterMap {
         if (!framedMap.contains(DataComponentTypes.CUSTOM_DATA))
             return false;
 
-        NbtCompound nbt = framedMap.get(DataComponentTypes.CUSTOM_DATA).getNbt();
+        NbtCompound nbt = Objects.requireNonNull(framedMap.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
         if (
                 !nbt.contains("image_map_id")
                 || !nbt.contains("image_map_origin_x") || !nbt.contains("image_map_origin_y") || !nbt.contains("image_map_origin_z")
@@ -140,7 +137,7 @@ public class PosterMap {
                 continue;
 
             ItemStack mapItem = frame.getHeldItemStack();
-            NbtCompound framedNbt = mapItem.get(DataComponentTypes.CUSTOM_DATA).getNbt();
+            NbtCompound framedNbt = Objects.requireNonNull(mapItem.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
             if (
                     !framedNbt.contains("image_map_id")
                     || !framedNbt.contains("image_map_origin_x") || !framedNbt.contains("image_map_origin_y") || !framedNbt.contains("image_map_origin_z")
@@ -154,7 +151,7 @@ public class PosterMap {
             int framedOriginZ = nbt.getInt("image_map_origin_z").get();
 
             if (mapId.equals(framedMapId) && originX == framedOriginX && originY == framedOriginY && originZ == framedOriginZ)
-                frame.damage((ServerWorld) frame.getWorld(), new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
+                frame.damage((ServerWorld) frame.getEntityWorld(), new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
         }
 
         return true;
@@ -202,7 +199,7 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getWorld();
+            World world = entity.getEntityWorld();
 
             int xSize = (width - 1) * rightDir.getOffsetX() + (height - 1) * playerDir.getOffsetX();
             int zSize = (width - 1) * rightDir.getOffsetZ() + (height - 1) * playerDir.getOffsetZ();
@@ -242,7 +239,7 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getWorld();
+            World world = entity.getEntityWorld();
 
             int xSize = (width - 1) * rightDir.getOffsetX() + (height - 1) * -playerDir.getOffsetX();
             int zSize = (width - 1) * rightDir.getOffsetZ() + (height - 1) * -playerDir.getOffsetZ();
@@ -282,7 +279,7 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getWorld();
+            World world = entity.getEntityWorld();
 
             int xSize = (width - 1) * rightDir.getOffsetX();
             int zSize = (width - 1) * rightDir.getOffsetZ();

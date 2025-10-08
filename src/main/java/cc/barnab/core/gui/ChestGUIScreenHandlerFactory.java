@@ -146,15 +146,15 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
         return Text.literal(name);
     }
 
-    @Override
-    public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-        super.readNbt(nbt, wrapper);
-        Inventories.readNbt(nbt, this.inventory, wrapper);
-    }
-
-    @Override
-    public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
-        super.writeNbt(nbt, wrapper);
-        Inventories.writeNbt(nbt, this.inventory, wrapper);
-    }
+//    @Override
+//    public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
+//        super.readNbt(nbt, wrapper);
+//        Inventories.readNbt(nbt, this.inventory, wrapper);
+//    }
+//
+//    @Override
+//    public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup wrapper) {
+//        super.writeNbt(nbt, wrapper);
+//        Inventories.writeNbt(nbt, this.inventory, wrapper);
+//    }
 }
