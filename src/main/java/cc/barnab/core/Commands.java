@@ -13,13 +13,13 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.permission.PermissionCheck;
+import net.minecraft.command.permission.PermissionSourcePredicate;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -28,9 +28,11 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public class Commands {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
+        PermissionSourcePredicate<ServerCommandSource> permissionCheck = getServerCommandSourcePermissionSourcePredicate();
+
         // Help command
         dispatcher.register(literal("imagemap")
-                .requires(source -> source.hasPermissionLevel(ImageMap.CONFIG.minPermLevel))
+                .requires(permissionCheck)
                 .executes(HelpCommand::executeCommand)
                 .then(literal("help")
                         .executes(HelpCommand::executeCommand)
@@ -38,7 +40,7 @@ public class Commands {
         );
         // Reload command
         dispatcher.register(literal("imagemap")
-                .requires(source -> source.hasPermissionLevel(4))
+                .requires(CommandManager.requirePermissionLevel(CommandManager.OWNERS_CHECK))
                 .then(literal("reload")
                         .executes(ReloadCommand::executeCommand)
                 )
@@ -57,7 +59,7 @@ public class Commands {
 //        );
         // Create map command
         dispatcher.register(literal("imagemap")
-                .requires(source -> source.hasPermissionLevel(ImageMap.CONFIG.minPermLevel))
+                .requires(permissionCheck)
                 .then(literal("new")
                     .then(argument("width", IntegerArgumentType.integer(1))
                             .then(argument("height", IntegerArgumentType.integer(1))
@@ -71,7 +73,7 @@ public class Commands {
                 )
         );
         dispatcher.register(literal("tomap")
-                .requires(source -> source.hasPermissionLevel(ImageMap.CONFIG.minPermLevel))
+                .requires(permissionCheck)
                 .then(argument("width", IntegerArgumentType.integer(1))
                     .then(argument("height", IntegerArgumentType.integer(1))
                         .then(argument("mode", StringArgumentType.word()).suggests(new ModeSuggestionProvider())
@@ -84,7 +86,7 @@ public class Commands {
         );
         // Map list command
         dispatcher.register(literal("maps")
-                .requires(source -> source.hasPermissionLevel(ImageMap.CONFIG.minPermLevel))
+                .requires(permissionCheck)
                 .executes(MapsCommand::executeCommand)
                 .then(argument("player", StringArgumentType.word()).suggests(new PlayerSuggestionProvider())
                     .executes(MapsCommand::executeCommand)
@@ -121,5 +123,17 @@ public class Commands {
             //builder.suggest("ImageOnMap");
             return builder.buildFuture();
         }
+    }
+
+    private static @NotNull PermissionSourcePredicate<ServerCommandSource> getServerCommandSourcePermissionSourcePredicate() {
+        final PermissionCheck[] permissionLevels = {
+                CommandManager.ALWAYS_PASS_CHECK,
+                CommandManager.MODERATORS_CHECK,
+                CommandManager.GAMEMASTERS_CHECK,
+                CommandManager.ADMINS_CHECK,
+                CommandManager.OWNERS_CHECK,
+        };
+
+        return CommandManager.requirePermissionLevel(permissionLevels[Math.clamp(ImageMap.CONFIG.minPermLevel, 0, permissionLevels.length-1)]);
     }
 }
