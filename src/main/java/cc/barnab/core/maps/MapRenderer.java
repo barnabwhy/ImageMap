@@ -1,17 +1,15 @@
 package cc.barnab.core.maps;
 
-import cc.barnab.ImageMap;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.component.type.MapIdComponent;
-import net.minecraft.item.map.MapState;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.PersistentStateManager;
-import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.saveddata.maps.MapId;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.storage.SavedDataStorage;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -39,9 +37,9 @@ public class MapRenderer {
         });
     }
 
-    public static CompletableFuture<MapImage> renderMapImage(ServerPlayerEntity player, ServerWorld world, BufferedImage image, int width, int height, MapFillMode mode) {
-        boolean wasSavingDisabled = world.savingDisabled;
-        world.savingDisabled = true;
+    public static CompletableFuture<MapImage> renderMapImage(ServerPlayer player, ServerLevel world, BufferedImage image, int width, int height, MapFillMode mode) {
+        boolean wasSavingDisabled = world.noSave;
+        world.noSave = true;
 
         int pixelWidth = width * 128;
         int pixelHeight = height * 128;
@@ -121,13 +119,13 @@ public class MapRenderer {
                         imageY -= finalMapOffsetY % 128;
                     }
 
-                    MapIdComponent mapId = world.increaseAndGetMapId();
+                    MapId mapId = world.getFreeMapId();
                     drawMap(world, mapId, scaled, imageX, imageY, fullMapX, fullMapY);
                     mapIds.add(mapId.id());
                 }
             }
 
-            String id = MapLoader.getNextId(player.getUuid());
+            String id = MapLoader.getNextId(player.getUUID());
 
             MapImage mapImage;
             if (mapIds.size() == 1) {
@@ -137,14 +135,14 @@ public class MapRenderer {
             }
 
             // Save map data
-            world.getPersistentStateManager().save();
-            world.savingDisabled = wasSavingDisabled;
+            world.getDataStorage().saveAndJoin();
+            world.noSave = wasSavingDisabled;
 
             return mapImage;
         });
     }
 
-    public static void drawMap(ServerWorld world, MapIdComponent mapId, BufferedImage image, int imageX, int imageY, int mapX, int mapY) {
+    public static void drawMap(ServerLevel world, MapId mapId, BufferedImage image, int imageX, int imageY, int mapX, int mapY) {
         int endX = mapX + (image.getWidth() - imageX);
         int endY = mapY + (image.getHeight() - imageY);
 
@@ -153,7 +151,7 @@ public class MapRenderer {
         if (endY > 128)
             endY = 128;
 
-        MapState state = MapState.of((byte)0, true, world.getRegistryKey());
+        MapItemSavedData state = MapItemSavedData.createForClient((byte)0, true, world.dimension());
 
         for (int y = mapY; y < endY; y++) {
             for (int x = mapX; x < endX; x++) {
@@ -164,29 +162,29 @@ public class MapRenderer {
             }
         }
 
-        world.putMapState(mapId, state);
+        world.setMapData(mapId, state);
 
-        PersistentStateManager stateManager = world.getPersistentStateManager();
-        PersistentStateType<MapState> mapStateType = MapState.createStateType(mapId);
+        SavedDataStorage stateManager = world.getDataStorage();
+        SavedDataType<MapItemSavedData> mapStateType = MapItemSavedData.type(mapId);
 
         File mapDatBackup = new File(FabricLoader.getInstance().getConfigDir().toFile(), "/ImageMap/map_backup/map_"+ mapId.id() + ".dat");
         mapDatBackup.getParentFile().mkdirs();
-        NbtCompound mapNbt = stateManager.encode(mapStateType, state, stateManager.registries.getOps(NbtOps.INSTANCE));
+        CompoundTag mapNbt = stateManager.encodeUnchecked(mapStateType, state, stateManager.registries.createSerializationContext(NbtOps.INSTANCE));
         try {
             NbtIo.writeCompressed(mapNbt, mapDatBackup.toPath());
         } catch (IOException ignored) {
             // Mark as dirty if write fails, so it will still get saved
-            state.markDirty();
+            state.setDirty();
             return;
         }
 
         // Cheat saving so we can do it faster
-        Path mapDatPath = stateManager.getFile(mapStateType.id());
+        Path mapDatPath = stateManager.getDataFile(mapStateType.id());
         try {
             Files.copy(mapDatBackup.toPath(), mapDatPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ignored) {
             // Mark as dirty if copy fails, so it will still get saved
-            state.markDirty();
+            state.setDirty();
         }
     }
 

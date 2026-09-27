@@ -2,19 +2,19 @@ package cc.barnab.core.maps;
 
 import cc.barnab.ImageMap;
 import com.mojang.serialization.DataResult;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.*;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.nbt.*;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Unit;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.saveddata.maps.MapId;
 
 import java.util.UUID;
 
@@ -30,34 +30,28 @@ public class MapItem {
             return ItemStack.EMPTY;
         }
 
-        MapIdComponent mapId = new MapIdComponent(mapImage.getMapIds().get(mapIndex));
+        MapId mapId = new MapId(mapImage.getMapIds().get(mapIndex));
 
-        ItemStack mapItem = Items.FILLED_MAP.getDefaultStack();
-        mapItem.set(DataComponentTypes.ITEM_NAME, Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD));
+        ItemStack mapItem = Items.FILLED_MAP.getDefaultInstance();
+        mapItem.set(DataComponents.ITEM_NAME, Component.literal(mapImage.getName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
 
-        Text mapTypeText = Text.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.WHITE));
+        Component mapTypeText = Component.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.WHITE));
 
-        Text mapIdText = Text.literal("ID: " + mapImage.getId())
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.GRAY));
+        Component mapIdText = Component.literal("ID: " + mapImage.getId())
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.GRAY));
 
-        mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
-        mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
-
-        if (isSingle) {
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43690)); // dark aqua
-        } else {
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43520)); // dark green
-        }
+        mapItem.set(DataComponents.LORE, ItemLore.EMPTY.withLineAdded(mapTypeText).withLineAdded(mapIdText));
+        mapItem.set(DataComponents.MAP_ID, mapId);
+        mapItem.set(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(DataComponents.MAP_ID, true));
 
         // Custom data
-        NbtCompound nbt = new NbtCompound();
-        nbt.put("image_map_id", NbtString.of(mapImage.getId()));
-        nbt.put("image_map_owner", NbtString.of(ownerUUID.toString()));
+        CompoundTag nbt = new CompoundTag();
+        nbt.put("image_map_id", StringTag.valueOf(mapImage.getId()));
+        nbt.put("image_map_owner", StringTag.valueOf(ownerUUID.toString()));
 
-        NbtComponent nbtComponent = NbtComponent.of(nbt);
-        mapItem.set(DataComponentTypes.CUSTOM_DATA, nbtComponent);
+        CustomData nbtComponent = CustomData.of(nbt);
+        mapItem.set(DataComponents.CUSTOM_DATA, nbtComponent);
 
         return mapItem;
     }
@@ -66,44 +60,42 @@ public class MapItem {
     public static ItemStack fromMapImageForFrame(MapImage mapImage, int mapIndex, BlockPos origin, int rotation) {
         boolean isSingle = mapImage.getType() == MapImageType.SINGLE;
 
-        MapIdComponent mapId = new MapIdComponent(mapImage.getMapIds().get(mapIndex));
+        MapId mapId = new MapId(mapImage.getMapIds().get(mapIndex));
 
-        ItemStack mapItem = Items.FILLED_MAP.getDefaultStack();
+        ItemStack mapItem = Items.FILLED_MAP.getDefaultInstance();
         if (isSingle) {
-            mapItem.set(DataComponentTypes.ITEM_NAME, Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD));
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43690)); // dark aqua
+            mapItem.set(DataComponents.ITEM_NAME, Component.literal(mapImage.getName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         } else {
             int x = mapIndex % mapImage.getWidth();
             int y = mapIndex / mapImage.getWidth();
-            mapItem.set(DataComponentTypes.ITEM_NAME,
-                    Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD)
-                        .append(Text.literal(String.format(" (%d, %d)", x, y).formatted(Formatting.GRAY)))
+            mapItem.set(DataComponents.ITEM_NAME,
+                    Component.literal(mapImage.getName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
+                        .append(Component.literal(String.format(" (%d, %d)", x, y).formatted(ChatFormatting.GRAY)))
             );
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43520)); // dark green
         }
 
-        Text mapTypeText = Text.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.WHITE));
+        Component mapTypeText = Component.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.WHITE));
 
-        Text mapIdText = Text.literal("ID: " + mapImage.getId())
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.GRAY));
+        Component mapIdText = Component.literal("ID: " + mapImage.getId())
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.GRAY));
 
-        mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
-        mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
+        mapItem.set(DataComponents.LORE, ItemLore.EMPTY.withLineAdded(mapTypeText).withLineAdded(mapIdText));
+        mapItem.set(DataComponents.MAP_ID, mapId);
+        mapItem.set(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(DataComponents.MAP_ID, true));
 
         // Custom data
-        NbtCompound nbt = new NbtCompound();
-        nbt.put("image_map_id", NbtString.of(mapImage.getId()));
-        nbt.put("image_map_origin_x", NbtInt.of(origin.getX()));
-        nbt.put("image_map_origin_y", NbtInt.of(origin.getY()));
-        nbt.put("image_map_origin_z", NbtInt.of(origin.getZ()));
-        nbt.put("image_map_rotation", NbtInt.of(rotation));
-        nbt.put("image_map_width", NbtInt.of(mapImage.getWidth()));
-        nbt.put("image_map_height", NbtInt.of(mapImage.getHeight()));
+        CompoundTag nbt = new CompoundTag();
+        nbt.put("image_map_id", StringTag.valueOf(mapImage.getId()));
+        nbt.put("image_map_origin_x", IntTag.valueOf(origin.getX()));
+        nbt.put("image_map_origin_y", IntTag.valueOf(origin.getY()));
+        nbt.put("image_map_origin_z", IntTag.valueOf(origin.getZ()));
+        nbt.put("image_map_rotation", IntTag.valueOf(rotation));
+        nbt.put("image_map_width", IntTag.valueOf(mapImage.getWidth()));
+        nbt.put("image_map_height", IntTag.valueOf(mapImage.getHeight()));
 
-        NbtComponent nbtComponent = NbtComponent.of(nbt);
-        mapItem.set(DataComponentTypes.CUSTOM_DATA, nbtComponent);
+        CustomData nbtComponent = CustomData.of(nbt);
+        mapItem.set(DataComponents.CUSTOM_DATA, nbtComponent);
 
         return mapItem;
     }
@@ -116,31 +108,29 @@ public class MapItem {
             return ItemStack.EMPTY;
         }
 
-        MapIdComponent mapId = new MapIdComponent(mapImage.getMapIds().get(mapIndex));
+        MapId mapId = new MapId(mapImage.getMapIds().get(mapIndex));
 
-        ItemStack mapItem = Items.FILLED_MAP.getDefaultStack();
+        ItemStack mapItem = Items.FILLED_MAP.getDefaultInstance();
 
-        Text mapTypeText = Text.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.WHITE));
+        Component mapTypeText = Component.literal(isSingle ? "Single map" : mapImage.getWidth() + "x" + mapImage.getHeight() + " map")
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.WHITE));
 
-        Text mapIdText = Text.literal("ID: " + mapImage.getId())
-                .setStyle(Style.EMPTY.withItalic(false).withColor(Formatting.GRAY));
+        Component mapIdText = Component.literal("ID: " + mapImage.getId())
+                .setStyle(Style.EMPTY.withItalic(false).withColor(ChatFormatting.GRAY));
 
-        mapItem.set(DataComponentTypes.LORE, LoreComponent.DEFAULT.with(mapTypeText).with(mapIdText));
-        mapItem.set(DataComponentTypes.MAP_ID, mapId);
-        mapItem.set(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.MAP_ID, true));
+        mapItem.set(DataComponents.LORE, ItemLore.EMPTY.withLineAdded(mapTypeText).withLineAdded(mapIdText));
+        mapItem.set(DataComponents.MAP_ID, mapId);
+        mapItem.set(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(DataComponents.MAP_ID, true));
 
         if (isSingle) {
-            mapItem.set(DataComponentTypes.ITEM_NAME, Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD));
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43690)); // dark aqua
+            mapItem.set(DataComponents.ITEM_NAME, Component.literal(mapImage.getName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         } else {
             int x = mapIndex % mapImage.getWidth();
             int y = mapIndex / mapImage.getWidth();
-            mapItem.set(DataComponentTypes.ITEM_NAME,
-                    Text.literal(mapImage.getName()).formatted(Formatting.GREEN, Formatting.BOLD)
-                            .append(Text.literal(String.format(" (%d, %d)", x, y).formatted(Formatting.GRAY)))
+            mapItem.set(DataComponents.ITEM_NAME,
+                    Component.literal(mapImage.getName()).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)
+                            .append(Component.literal(String.format(" (%d, %d)", x, y).formatted(ChatFormatting.GRAY)))
             );
-            mapItem.set(DataComponentTypes.MAP_COLOR, new MapColorComponent(43520)); // dark green
         }
 
         return mapItem;

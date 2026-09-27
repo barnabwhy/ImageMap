@@ -1,6 +1,6 @@
 package cc.barnab;
 
-import cc.barnab.core.Commands;
+import cc.barnab.core.CustomCommands;
 import cc.barnab.core.ImageMapConfig;
 import cc.barnab.core.maps.MapLoader;
 import cc.barnab.core.maps.PosterMap;
@@ -11,8 +11,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.util.ActionResult;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.InteractionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,28 +28,28 @@ public class ImageMap implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		CommandRegistrationCallback.EVENT.register(Commands::register);
+		CommandRegistrationCallback.EVENT.register(CustomCommands::register);
 
 		MapLoader.loadPlayerMaps();
 
 		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-			if (entity instanceof ItemFrameEntity itemFrameEntity) {
+			if (entity instanceof ItemFrame itemFrameEntity) {
 				if (PosterMap.place(player, hand, itemFrameEntity))
-					return ActionResult.SUCCESS;
+					return InteractionResult.SUCCESS;
 			}
 
-			return ActionResult.PASS;
+			return InteractionResult.PASS;
 		});
 
 		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-			if (entity instanceof ItemFrameEntity itemFrameEntity) {
-				if (player.isSneaking()) {
+			if (entity instanceof ItemFrame itemFrameEntity) {
+				if (player.isCrouching()) {
 					if (PosterMap.destroy(player, itemFrameEntity))
-						return ActionResult.SUCCESS;
+						return InteractionResult.SUCCESS;
 				}
 			}
 
-			return ActionResult.PASS;
+			return InteractionResult.PASS;
 		});
 
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> {

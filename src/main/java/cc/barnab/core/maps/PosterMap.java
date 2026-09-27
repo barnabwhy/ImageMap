@@ -1,21 +1,24 @@
 package cc.barnab.core.maps;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageSources;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.decoration.ItemFrameEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypeFilter;
-import net.minecraft.util.math.*;
-import net.minecraft.world.World;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageSources;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.entity.EntityTypeTest;
+import net.minecraft.world.phys.AABB;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -23,21 +26,21 @@ import java.util.concurrent.CompletableFuture;
 public class PosterMap {
     private static final HashMap<UUID, Long> LAST_PLACED_POSTER = new HashMap<>();
 
-    public static boolean place(PlayerEntity player, Hand hand, ItemFrameEntity entity) {
-        if (LAST_PLACED_POSTER.containsKey(player.getUuid()) && System.currentTimeMillis() - LAST_PLACED_POSTER.get(player.getUuid()) < 100)
+    public static boolean place(Player player, InteractionHand hand, ItemFrame entity) {
+        if (LAST_PLACED_POSTER.containsKey(player.getUUID()) && System.currentTimeMillis() - LAST_PLACED_POSTER.get(player.getUUID()) < 100)
             return false;
 
-        LAST_PLACED_POSTER.put(player.getUuid(), System.currentTimeMillis());
+        LAST_PLACED_POSTER.put(player.getUUID(), System.currentTimeMillis());
 
-        ItemStack heldItem = player.getStackInHand(hand);
+        ItemStack heldItem = player.getItemInHand(hand);
 
-        if(entity.containsMap())
+        if(entity.hasFramedMap())
             return false;
 
-        if (!heldItem.isOf(Items.FILLED_MAP) || !heldItem.contains(DataComponentTypes.CUSTOM_DATA))
+        if (!heldItem.is(Items.FILLED_MAP) || !heldItem.has(DataComponents.CUSTOM_DATA))
             return false;
 
-        NbtCompound nbt = Objects.requireNonNull(heldItem.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
+        CompoundTag nbt = Objects.requireNonNull(heldItem.get(DataComponents.CUSTOM_DATA)).copyTag();
         if (!nbt.contains("image_map_id") || !nbt.contains("image_map_owner"))
             return false;
 
@@ -49,22 +52,22 @@ public class PosterMap {
         if (mapImage.isEmpty())
             return false;
 
-        Direction playerDir = Direction.getFacing(player.getRotationVector(0.0f, player.getYaw(1.0f)));
-        List<ItemFrameEntity> frames = getFrames(entity, playerDir, mapImage.get().getWidth(), mapImage.get().getHeight());
+        Direction playerDir = Direction.fromYRot(player.getViewYRot(1.0f));
+        List<ItemFrame> frames = getFrames(entity, playerDir, mapImage.get().getWidth(), mapImage.get().getHeight());
         if (frames.size() < mapImage.get().getWidth() * mapImage.get().getHeight()) {
-            player.sendMessage(Text.literal("Failed to place poster map. Not enough item frames were available.").formatted(Formatting.RED), false);
+            player.sendSystemMessage(Component.literal("Failed to place poster map. Not enough item frames were available.").withStyle(ChatFormatting.RED));
             return false;
         }
 
-        BlockPos origin = entity.getBlockPos();
+        BlockPos origin = entity.blockPosition();
 
         // Async to prevent bug where bottom left map gets rotated
         CompletableFuture.supplyAsync(() -> {
             int i = 0;
-            for (ItemFrameEntity frame : frames) {
+            for (ItemFrame frame : frames) {
                 int rotation = getFrameRotation(entity, player);
                 ItemStack mapItem = MapItem.fromMapImageForFrame(mapImage.get(), i, origin, rotation);
-                frame.setHeldItemStack(mapItem);
+                frame.setItem(mapItem);
                 frame.setRotation(rotation);
                 i++;
             }
@@ -74,20 +77,20 @@ public class PosterMap {
         return true;
     }
 
-    public static boolean destroy(PlayerEntity player, ItemFrameEntity entity) {
-        if (LAST_PLACED_POSTER.containsKey(player.getUuid()) && System.currentTimeMillis() - LAST_PLACED_POSTER.get(player.getUuid()) < 100)
+    public static boolean destroy(Player player, ItemFrame entity) {
+        if (LAST_PLACED_POSTER.containsKey(player.getUUID()) && System.currentTimeMillis() - LAST_PLACED_POSTER.get(player.getUUID()) < 100)
             return false;
 
-        LAST_PLACED_POSTER.put(player.getUuid(), System.currentTimeMillis());
+        LAST_PLACED_POSTER.put(player.getUUID(), System.currentTimeMillis());
 
-        if(!entity.containsMap())
+        if(!entity.hasFramedMap())
             return false;
 
-        ItemStack framedMap = entity.getHeldItemStack();
-        if (!framedMap.contains(DataComponentTypes.CUSTOM_DATA))
+        ItemStack framedMap = entity.getItem();
+        if (!framedMap.has(DataComponents.CUSTOM_DATA))
             return false;
 
-        NbtCompound nbt = Objects.requireNonNull(framedMap.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
+        CompoundTag nbt = Objects.requireNonNull(framedMap.get(DataComponents.CUSTOM_DATA)).copyTag();
         if (
                 !nbt.contains("image_map_id")
                 || !nbt.contains("image_map_origin_x") || !nbt.contains("image_map_origin_y") || !nbt.contains("image_map_origin_z")
@@ -104,7 +107,7 @@ public class PosterMap {
         int height = nbt.getInt("image_map_height").get();
 
         Direction playerDir = Direction.UP;
-        if (entity.getFacing() == Direction.UP) {
+        if (entity.getDirection() == Direction.UP) {
             playerDir = switch (rotation) {
                 case 0 -> Direction.NORTH;
                 case 1 -> Direction.EAST;
@@ -112,7 +115,7 @@ public class PosterMap {
                 case 3 -> Direction.WEST;
                 default -> Direction.UP;
             };
-        } else if (entity.getFacing() == Direction.DOWN) {
+        } else if (entity.getDirection() == Direction.DOWN) {
             playerDir = switch (rotation) {
                 case 0 -> Direction.SOUTH;
                 case 1 -> Direction.WEST;
@@ -124,7 +127,7 @@ public class PosterMap {
 
         BlockPos origin = new BlockPos(originX, originY, originZ);
 
-        List<ItemFrameEntity> frames = getFrames(entity, playerDir, width, height, origin);
+        List<ItemFrame> frames = getFrames(entity, playerDir, width, height, origin);
 
         // If the item frame isn't actually in the area don't delete them
         // Prevents bug causing remote map deletion to be possible (kind of funny)
@@ -132,12 +135,12 @@ public class PosterMap {
             return false;
         }
 
-        for (ItemFrameEntity frame : frames) {
-            if (!frame.containsMap())
+        for (ItemFrame frame : frames) {
+            if (!frame.hasFramedMap())
                 continue;
 
-            ItemStack mapItem = frame.getHeldItemStack();
-            NbtCompound framedNbt = Objects.requireNonNull(mapItem.get(DataComponentTypes.CUSTOM_DATA)).copyNbt();
+            ItemStack mapItem = frame.getItem();
+            CompoundTag framedNbt = Objects.requireNonNull(mapItem.get(DataComponents.CUSTOM_DATA)).copyTag();
             if (
                     !framedNbt.contains("image_map_id")
                     || !framedNbt.contains("image_map_origin_x") || !framedNbt.contains("image_map_origin_y") || !framedNbt.contains("image_map_origin_z")
@@ -151,16 +154,16 @@ public class PosterMap {
             int framedOriginZ = nbt.getInt("image_map_origin_z").get();
 
             if (mapId.equals(framedMapId) && originX == framedOriginX && originY == framedOriginY && originZ == framedOriginZ)
-                frame.damage((ServerWorld) frame.getEntityWorld(), new DamageSource(new DamageSources(entity.getRegistryManager()).create(DamageTypes.PLAYER_ATTACK).getTypeRegistryEntry(), player), 0.0f);
+                frame.hurtServer((ServerLevel) frame.level(), new DamageSource(new DamageSources(entity.registryAccess()).source(DamageTypes.PLAYER_ATTACK).typeHolder(), player), 0.0f);
         }
 
         return true;
     }
 
-    private static int getFrameRotation(ItemFrameEntity entity, PlayerEntity player) {
-        if (entity.getFacing() == Direction.UP) {
+    private static int getFrameRotation(ItemFrame entity, Player player) {
+        if (entity.getDirection() == Direction.UP) {
             // Floor
-            Direction playerYawDir = Direction.getFacing(player.getRotationVector(0.0f, player.getYaw(1.0f)));
+            Direction playerYawDir = Direction.fromYRot(player.getViewYRot(1.0f));
             return switch (playerYawDir) {
                 case NORTH -> 0;
                 case EAST -> 1;
@@ -168,9 +171,9 @@ public class PosterMap {
                 case WEST -> 3;
                 default -> 0; // :3
             };
-        } else if (entity.getFacing() == Direction.DOWN) {
+        } else if (entity.getDirection() == Direction.DOWN) {
             // Ceiling
-            Direction playerYawDir = Direction.getFacing(player.getRotationVector(0.0f, player.getYaw(1.0f)));
+            Direction playerYawDir = Direction.fromYRot(player.getViewYRot(1.0f));
             return switch (playerYawDir) {
                 case NORTH -> 2;
                 case EAST -> 3;
@@ -184,12 +187,12 @@ public class PosterMap {
         return 0;
     }
 
-    private static List<ItemFrameEntity> getFrames(ItemFrameEntity entity, Direction playerDir, int width, int height) {
-        return getFrames(entity, playerDir, width, height, entity.getBlockPos());
+    private static List<ItemFrame> getFrames(ItemFrame entity, Direction playerDir, int width, int height) {
+        return getFrames(entity, playerDir, width, height, entity.blockPosition());
     }
 
-    private static List<ItemFrameEntity> getFrames(ItemFrameEntity entity, Direction playerDir, int width, int height, BlockPos origin) {
-        if (entity.getFacing() == Direction.UP) {
+    private static List<ItemFrame> getFrames(ItemFrame entity, Direction playerDir, int width, int height, BlockPos origin) {
+        if (entity.getDirection() == Direction.UP) {
             // Floor
             Direction rightDir = switch (playerDir) {
                 case NORTH -> Direction.EAST;
@@ -199,37 +202,37 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getEntityWorld();
+            Level world = entity.level();
 
-            int xSize = (width - 1) * rightDir.getOffsetX() + (height - 1) * playerDir.getOffsetX();
-            int zSize = (width - 1) * rightDir.getOffsetZ() + (height - 1) * playerDir.getOffsetZ();
+            int xSize = (width - 1) * rightDir.getStepX() + (height - 1) * playerDir.getStepX();
+            int zSize = (width - 1) * rightDir.getStepZ() + (height - 1) * playerDir.getStepZ();
 
-            BlockPos endPos = origin.add(new Vec3i(xSize, 0, zSize));
+            BlockPos endPos = origin.offset(new Vec3i(xSize, 0, zSize));
 
-            List<ItemFrameEntity> allFrames = world.getEntitiesByType(TypeFilter.instanceOf(ItemFrameEntity.class), Box.enclosing(origin, endPos), e -> {
-                if (e instanceof ItemFrameEntity i) {
-                    return i.isAlive() && (!i.containsMap() || i.getHeldItemStack().contains(DataComponentTypes.CUSTOM_DATA)) && i.getFacing().equals(entity.getFacing());
+            List<ItemFrame> allFrames = world.getEntities(EntityTypeTest.forClass(ItemFrame.class), AABB.encapsulatingFullBlocks(origin, endPos), e -> {
+                if (e instanceof ItemFrame i) {
+                    return i.isAlive() && (!i.hasFramedMap() || i.getItem().has(DataComponents.CUSTOM_DATA)) && i.getDirection().equals(entity.getDirection());
                 }
                 return false;
             });
 
             allFrames.sort((a, b) -> {
-                BlockPos aPos = a.getBlockPos();
-                BlockPos bPos = b.getBlockPos();
+                BlockPos aPos = a.blockPosition();
+                BlockPos bPos = b.blockPosition();
 
-                int xUpDiff = (aPos.getX() - bPos.getX()) * playerDir.getOffsetX();
-                int zUpDiff = (aPos.getZ() - bPos.getZ()) * playerDir.getOffsetZ();
+                int xUpDiff = (aPos.getX() - bPos.getX()) * playerDir.getStepX();
+                int zUpDiff = (aPos.getZ() - bPos.getZ()) * playerDir.getStepZ();
                 if (xUpDiff + zUpDiff != 0) {
                     return xUpDiff + zUpDiff;
                 }
 
-                int xRightDiff = (aPos.getX() - bPos.getX()) * rightDir.getOffsetX();
-                int zRightDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getOffsetZ();
+                int xRightDiff = (aPos.getX() - bPos.getX()) * rightDir.getStepX();
+                int zRightDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getStepZ();
                 return xRightDiff + zRightDiff;
             });
 
             return allFrames;
-        } else if (entity.getFacing() == Direction.DOWN) {
+        } else if (entity.getDirection() == Direction.DOWN) {
             // Ceiling
             Direction rightDir = switch (playerDir) {
                 case NORTH -> Direction.EAST;
@@ -239,39 +242,39 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getEntityWorld();
+            Level world = entity.level();
 
-            int xSize = (width - 1) * rightDir.getOffsetX() + (height - 1) * -playerDir.getOffsetX();
-            int zSize = (width - 1) * rightDir.getOffsetZ() + (height - 1) * -playerDir.getOffsetZ();
+            int xSize = (width - 1) * rightDir.getStepX() + (height - 1) * -playerDir.getStepX();
+            int zSize = (width - 1) * rightDir.getStepZ() + (height - 1) * -playerDir.getStepZ();
 
-            BlockPos endPos = origin.add(new Vec3i(xSize, 0, zSize));
+            BlockPos endPos = origin.offset(new Vec3i(xSize, 0, zSize));
 
-            List<ItemFrameEntity> allFrames = world.getEntitiesByType(TypeFilter.instanceOf(ItemFrameEntity.class), Box.enclosing(origin, endPos), e -> {
-                if (e instanceof ItemFrameEntity i) {
-                    return i.isAlive() && (!i.containsMap() || i.getHeldItemStack().contains(DataComponentTypes.CUSTOM_DATA)) && i.getFacing().equals(entity.getFacing());
+            List<ItemFrame> allFrames = world.getEntities(EntityTypeTest.forClass(ItemFrame.class), AABB.encapsulatingFullBlocks(origin, endPos), e -> {
+                if (e instanceof ItemFrame i) {
+                    return i.isAlive() && (!i.hasFramedMap() || i.getItem().has(DataComponents.CUSTOM_DATA)) && i.getDirection().equals(entity.getDirection());
                 }
                 return false;
             });
 
             allFrames.sort((a, b) -> {
-                BlockPos aPos = a.getBlockPos();
-                BlockPos bPos = b.getBlockPos();
+                BlockPos aPos = a.blockPosition();
+                BlockPos bPos = b.blockPosition();
 
-                int xUpDiff = (aPos.getX() - bPos.getX()) * -playerDir.getOffsetX();
-                int zUpDiff = (aPos.getZ() - bPos.getZ()) * -playerDir.getOffsetZ();
+                int xUpDiff = (aPos.getX() - bPos.getX()) * -playerDir.getStepX();
+                int zUpDiff = (aPos.getZ() - bPos.getZ()) * -playerDir.getStepZ();
                 if (xUpDiff + zUpDiff != 0) {
                     return xUpDiff + zUpDiff;
                 }
 
-                int xRightDiff = (aPos.getX() - bPos.getX()) * rightDir.getOffsetX();
-                int zRightDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getOffsetZ();
+                int xRightDiff = (aPos.getX() - bPos.getX()) * rightDir.getStepX();
+                int zRightDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getStepZ();
                 return xRightDiff + zRightDiff;
             });
 
             return allFrames;
         } else {
             // Wall
-            Direction rightDir = switch (entity.getFacing()) {
+            Direction rightDir = switch (entity.getDirection()) {
                 case NORTH -> Direction.WEST;
                 case EAST -> Direction.NORTH;
                 case SOUTH -> Direction.EAST;
@@ -279,26 +282,26 @@ public class PosterMap {
                 default -> Direction.UP; // :3
             };
 
-            World world = entity.getEntityWorld();
+            Level world = entity.level();
 
-            int xSize = (width - 1) * rightDir.getOffsetX();
-            int zSize = (width - 1) * rightDir.getOffsetZ();
+            int xSize = (width - 1) * rightDir.getStepX();
+            int zSize = (width - 1) * rightDir.getStepZ();
 
-            BlockPos endPos = origin.add(new Vec3i(xSize, height - 1, zSize));
+            BlockPos endPos = origin.offset(new Vec3i(xSize, height - 1, zSize));
 
-            List<ItemFrameEntity> allFrames = world.getEntitiesByType(TypeFilter.instanceOf(ItemFrameEntity.class), Box.enclosing(origin, endPos), e -> {
-                if (e instanceof ItemFrameEntity i) {
-                    return i.isAlive() && (!i.containsMap() || i.getHeldItemStack().contains(DataComponentTypes.CUSTOM_DATA)) && i.getFacing().equals(entity.getFacing());
+            List<ItemFrame> allFrames = world.getEntities(EntityTypeTest.forClass(ItemFrame.class), AABB.encapsulatingFullBlocks(origin, endPos), e -> {
+                if (e instanceof ItemFrame i) {
+                    return i.isAlive() && (!i.hasFramedMap() || i.getItem().has(DataComponents.CUSTOM_DATA)) && i.getDirection().equals(entity.getDirection());
                 }
                 return false;
             });
 
             allFrames.sort((a, b) -> {
-                BlockPos aPos = a.getBlockPos();
-                BlockPos bPos = b.getBlockPos();
+                BlockPos aPos = a.blockPosition();
+                BlockPos bPos = b.blockPosition();
                 if (aPos.getY() == bPos.getY()) {
-                    int xDiff = (aPos.getX() - bPos.getX()) * rightDir.getOffsetX();
-                    int zDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getOffsetZ();
+                    int xDiff = (aPos.getX() - bPos.getX()) * rightDir.getStepX();
+                    int zDiff = (aPos.getZ() - bPos.getZ()) * rightDir.getStepZ();
                     return xDiff + zDiff;
                 } else {
                     return aPos.getY() - bPos.getY();

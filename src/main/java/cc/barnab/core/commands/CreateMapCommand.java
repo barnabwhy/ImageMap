@@ -1,24 +1,23 @@
 package cc.barnab.core.commands;
 
 import cc.barnab.ImageMap;
-import cc.barnab.core.ImageMapConfig;
 import cc.barnab.core.maps.*;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 public class CreateMapCommand {
-    public static int executeCommand(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerCommandSource source = context.getSource();
+    public static int executeCommand(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
 
-        ServerPlayerEntity player = source.getPlayer();
+        ServerPlayer player = source.getPlayer();
 
         if (player == null) {
-            source.sendFeedback(() -> Text.literal("Command can only be run by players").formatted(Formatting.RED), false);
+            source.sendFailure(Component.literal("Command can only be run by players").withStyle(ChatFormatting.RED));
             return 1;
         }
 
@@ -28,16 +27,16 @@ public class CreateMapCommand {
         String url = context.getArgument("url", String.class);
 
         if (width > ImageMap.CONFIG.maxWidth) {
-            source.sendFeedback(() -> Text.literal(String.format("Map image would be too wide (%d > %d)", width, ImageMap.CONFIG.maxWidth)).formatted(Formatting.RED), false);
+            source.sendFailure(Component.literal(String.format("Map image would be too wide (%d > %d)", width, ImageMap.CONFIG.maxWidth)).withStyle(ChatFormatting.RED));
             return 1;
         }
 
         if (height > ImageMap.CONFIG.maxHeight) {
-            source.sendFeedback(() -> Text.literal(String.format("Map image would be too tall (%d > %d)", height, ImageMap.CONFIG.maxHeight)).formatted(Formatting.RED), false);
+            source.sendFailure(Component.literal(String.format("Map image would be too tall (%d > %d)", height, ImageMap.CONFIG.maxHeight)).withStyle(ChatFormatting.RED));
             return 1;
         }
 
-        source.sendFeedback(() -> Text.literal(String.format("Creating %dx%d map image...", width, height)).formatted(Formatting.AQUA), false);
+        source.sendSystemMessage(Component.literal(String.format("Creating %dx%d map image...", width, height)).withStyle(ChatFormatting.AQUA));
 
         MapFillMode fillMode = switch (mode) {
             case "stretch" -> MapFillMode.STRETCH;
@@ -50,19 +49,19 @@ public class CreateMapCommand {
         MapRenderer.downloadImage(url)
             .thenAccept(image -> {
                 if (image == null) {
-                    source.sendFeedback(() -> Text.literal("Failed to download image. It was likely in an unsupported format.").formatted(Formatting.RED), false);
+                    source.sendFailure(Component.literal("Failed to download image. It was likely in an unsupported format.").withStyle(ChatFormatting.RED));
                     return;
                 }
 
-                MapRenderer.renderMapImage(source.getPlayer(), source.getWorld(), image, width, height, fillMode)
+                MapRenderer.renderMapImage(source.getPlayer(), source.getLevel(), image, width, height, fillMode)
                     .thenAccept(mapImage -> {
-                        MapLoader.addPlayerMap(player.getUuid(), mapImage);
+                        MapLoader.addPlayerMap(player.getUUID(), mapImage);
 
-                        ItemStack mapItem = MapItem.fromMapImage(mapImage, player.getUuid());
-                        player.giveItemStack(mapItem);
+                        ItemStack mapItem = MapItem.fromMapImage(mapImage, player.getUUID());
+                        player.addItem(mapItem);
 
                         long timeElapsed = System.currentTimeMillis() - startTime;
-                        source.sendFeedback(() -> Text.literal(String.format("Created map image in %.2fs", (double)timeElapsed / 1000.0)).formatted(Formatting.GREEN), false);
+                        source.sendSuccess(() -> Component.literal(String.format("Created map image in %.2fs", (double)timeElapsed / 1000.0)).withStyle(ChatFormatting.GREEN), false);
                     });
             });
 

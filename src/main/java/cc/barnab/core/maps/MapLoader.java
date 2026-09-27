@@ -2,7 +2,6 @@ package cc.barnab.core.maps;
 
 import cc.barnab.ImageMap;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.io.File;
 import java.util.HashMap;

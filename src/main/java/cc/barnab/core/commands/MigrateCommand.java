@@ -4,15 +4,15 @@ import cc.barnab.core.maps.MapLoader;
 import cc.barnab.core.maps.Migrator;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
 
 import java.util.concurrent.CompletableFuture;
 
 public class MigrateCommand {
-    public static int executeCommand(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerCommandSource source = context.getSource();
+    public static int executeCommand(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
 
         String migrationSource = context.getArgument("source", String.class);
         String password = null;
@@ -21,10 +21,10 @@ public class MigrateCommand {
         } catch (IllegalArgumentException ignored) { }
 
         if (password == null) {
-            source.sendFeedback(() -> Text.literal(
+            source.sendFailure(Component.literal(
                     "Migrating is a long process and should not be run multiple times and may break some maps. Are you sure you want to migrate?"
             ).append("\nIf you wish to continue run:\n /imagemap migrate " + migrationSource + " " + Migrator.getPassword())
-                    .formatted(Formatting.RED), false);
+                    .withStyle(ChatFormatting.RED));
             return 1;
         }
 
@@ -55,7 +55,7 @@ public class MigrateCommand {
 //                });
 //            }
             default -> {
-                source.sendFeedback(() -> Text.literal("Can't start migration: Unknown source.").formatted(Formatting.RED), false);
+                source.sendFailure(Component.literal("Can't start migration: Unknown source.").withStyle(ChatFormatting.RED));
                 return 1;
             }
         }

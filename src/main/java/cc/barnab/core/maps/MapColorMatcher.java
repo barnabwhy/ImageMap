@@ -1,7 +1,6 @@
 package cc.barnab.core.maps;
 
-import cc.barnab.ImageMap;
-import net.minecraft.block.MapColor;
+import net.minecraft.world.level.material.MapColor;
 
 import java.awt.*;
 
@@ -57,7 +56,7 @@ public class MapColorMatcher {
 
     private static void loadColors() {
         for (int i = 0; i < 256; i++) {
-            int color = MapColor.getRenderColor(i);
+            int color = MapColor.getColorFromPackedId(i);
             mapColors[i] = new RGBAColor(color, false);
         }
 

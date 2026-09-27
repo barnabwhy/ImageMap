@@ -1,5 +1,6 @@
-accessWidener v2 named
+accessWidener v2 official
 
-accessible method net/minecraft/world/PersistentStateManager encode (Lnet/minecraft/world/PersistentStateType;Lnet/minecraft/world/PersistentState;Lnet/minecraft/registry/RegistryOps;)Lnet/minecraft/nbt/NbtCompound;
-accessible method net/minecraft/world/PersistentStateManager getFile (Ljava/lang/String;)Ljava/nio/file/Path;
-accessible field net/minecraft/world/PersistentStateManager registries Lnet/minecraft/registry/RegistryWrapper$WrapperLookup;
+accessible method net/minecraft/world/level/storage/SavedDataStorage encodeUnchecked (Lnet/minecraft/world/level/saveddata/SavedDataType;Lnet/minecraft/world/level/saveddata/SavedData;Lnet/minecraft/resources/RegistryOps;)Lnet/minecraft/nbt/CompoundTag;
+accessible method net/minecraft/world/level/storage/SavedDataStorage getDataFile (Lnet/minecraft/resources/Identifier;)Ljava/nio/file/Path;
+accessible field net/minecraft/world/level/storage/SavedDataStorage registries Lnet/minecraft/core/HolderLookup$Provider;
+accessible method net/minecraft/world/level/saveddata/maps/MapItemSavedData setColorsDirty (II)V

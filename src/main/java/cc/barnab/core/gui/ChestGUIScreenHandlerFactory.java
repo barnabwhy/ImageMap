@@ -1,24 +1,23 @@
 package cc.barnab.core.gui;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventories;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTypes;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 
-public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedScreenHandlerFactory, ImplementedInventory {
-    private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(9 * 6, ItemStack.EMPTY);
+public class ChestGUIScreenHandlerFactory extends BlockEntity implements MenuProvider, ImplementedInventory {
+    private final NonNullList<@NotNull ItemStack> inventory = NonNullList.withSize(9 * 6, ItemStack.EMPTY);
 
     private final boolean[] slotLockState = new boolean[9*6];
 
@@ -27,7 +26,7 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
     private final String name;
 
     public ChestGUIScreenHandlerFactory(String name) {
-        super(BlockEntityType.CHEST, BlockPos.ORIGIN, Blocks.CHEST.getDefaultState());
+        super(BlockEntityTypes.CHEST, BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
         this.name = name;
     }
 
@@ -48,8 +47,8 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
             return;
 
         getItems().set(slot, stack);
-        if (stack.getCount() > stack.getMaxCount()) {
-            stack.setCount(stack.getMaxCount());
+        if (stack.getCount() > stack.getMaxStackSize()) {
+            stack.setCount(stack.getMaxStackSize());
         }
     }
 
@@ -64,12 +63,12 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
     //From the ImplementedInventory Interface
 
     @Override
-    public DefaultedList<ItemStack> getItems() {
+    public NonNullList<@NotNull ItemStack> getItems() {
         return inventory;
     }
 
     @Override
-    public void setStack(int slot, ItemStack stack) {
+    public void setItem(int slot, ItemStack stack) {
         if (clickCallbacks.containsKey(slot)) {
             boolean res = clickCallbacks.get(slot).execute(ChestGUIClickType.CLICK);
             if (!res)
@@ -79,14 +78,14 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
         // Don't allow placing in locked slots
         if (!slotLockState[slot]) {
             getItems().set(slot, stack);
-            if (stack.getCount() > stack.getMaxCount()) {
-                stack.setCount(stack.getMaxCount());
+            if (stack.getCount() > stack.getMaxStackSize()) {
+                stack.setCount(stack.getMaxStackSize());
             }
         }
     }
 
     @Override
-    public ItemStack removeStack(int slot, int count) {
+    public @NotNull ItemStack removeItem(int slot, int count) {
         if (clickCallbacks.containsKey(slot)) {
             boolean res = clickCallbacks.get(slot).execute(ChestGUIClickType.CLICK);
             if (!res)
@@ -98,15 +97,15 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
             return ItemStack.EMPTY;
         }
 
-        ItemStack result = Inventories.splitStack(getItems(), slot, count);
+        ItemStack result = ContainerHelper.removeItem(getItems(), slot, count);
         if (!result.isEmpty()) {
-            markDirty();
+            setChanged();
         }
         return result;
     }
 
     @Override
-    public ItemStack removeStack(int slot) {
+    public @NotNull ItemStack removeItemNoUpdate(int slot) {
         if (clickCallbacks.containsKey(slot)) {
             boolean res = clickCallbacks.get(slot).execute(ChestGUIClickType.CLICK);
             if (!res)
@@ -117,7 +116,7 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
         if (slotLockState[slot]) {
             return ItemStack.EMPTY;
         }
-        return Inventories.removeStack(getItems(), slot);
+        return ContainerHelper.takeItem(getItems(), slot);
     }
 
     public boolean allowQuickMove(int slot) {
@@ -135,15 +134,15 @@ public class ChestGUIScreenHandlerFactory extends BlockEntity implements NamedSc
     //getDisplayName will Provide its name which is normally shown at the top
 
     @Override
-    public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+    public AbstractContainerMenu createMenu(int syncId, @NotNull Inventory playerInventory, @NotNull Player player) {
         //We provide *this* to the screenHandler as our class Implements Inventory
         //Only the Server has the Inventory at the start, this will be synced to the client in the ScreenHandler
         return new ChestGUIScreenHandler(syncId, playerInventory, this);
     }
 
     @Override
-    public Text getDisplayName() {
-        return Text.literal(name);
+    public @NotNull Component getDisplayName() {
+        return Component.literal(name);
     }
 
 //    @Override

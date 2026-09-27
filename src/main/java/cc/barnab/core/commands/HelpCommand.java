@@ -3,33 +3,33 @@ package cc.barnab.core.commands;
 import cc.barnab.ImageMap;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
 
 public class HelpCommand {
-    public static int executeCommand(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        ServerCommandSource source = context.getSource();
+    public static int executeCommand(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        CommandSourceStack source = context.getSource();
 
-        Text helpText = Text.literal("ImageMap v"+ ImageMap.VERSION).formatted(Formatting.YELLOW)
+        Component helpText = Component.literal("ImageMap v"+ ImageMap.VERSION).withStyle(ChatFormatting.YELLOW)
                 .append("\n")
-                .append(Text.literal("/tomap <width> <height> <mode> <url>").formatted(Formatting.GOLD))
+                .append(Component.literal("/tomap <width> <height> <mode> <url>").withStyle(ChatFormatting.GOLD))
                 .append(" ")
-                .append(Text.literal("Turn an image into a map").formatted(Formatting.YELLOW))
+                .append(Component.literal("Turn an image into a map").withStyle(ChatFormatting.YELLOW))
                 .append("\n")
-                .append(Text.literal("/maps [player]").formatted(Formatting.GOLD))
+                .append(Component.literal("/maps [player]").withStyle(ChatFormatting.GOLD))
                 .append(" ")
-                .append(Text.literal("Open the map selection GUI").formatted(Formatting.YELLOW))
+                .append(Component.literal("Open the map selection GUI").withStyle(ChatFormatting.YELLOW))
                 .append("\n")
-                .append(Text.literal("/imagemap help").formatted(Formatting.GOLD))
+                .append(Component.literal("/imagemap help").withStyle(ChatFormatting.GOLD))
                 .append(" ")
-                .append(Text.literal("View this help text").formatted(Formatting.YELLOW))
+                .append(Component.literal("View this help text").withStyle(ChatFormatting.YELLOW))
                 .append("\n")
-                .append(Text.literal("/imagemap reload").formatted(Formatting.GOLD))
+                .append(Component.literal("/imagemap reload").withStyle(ChatFormatting.GOLD))
                 .append(" ")
-                .append(Text.literal("Reload plugin config").formatted(Formatting.YELLOW));
+                .append(Component.literal("Reload plugin config").withStyle(ChatFormatting.YELLOW));
 
-        source.sendFeedback(() -> helpText, false);
+        source.sendSuccess(() -> helpText, false);
 
         return 1;
     }
